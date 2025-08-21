@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculadora de Notas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="icone.png" type="image/png">
+  <link rel="apple-touch-icon" href="icone.png">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f9; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 10px; }
+    h1 { color: #333; text-align: center; font-size: 1.8em; }
+    .container { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 480px; width: 100%; }
+    label { font-weight: bold; display: block; margin-top: 10px; font-size: 1em; }
+    input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; font-size: 1em; }
+    .hint { font-size: 12px; color: #555; margin-top: 4px; }
+    button { margin-top: 20px; width: 100%; padding: 12px; border: none; border-radius: 8px; background: #007bff; color: #fff; font-size: 1.1em; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .resultado { margin-top: 20px; font-size: 1.2em; font-weight: bold; text-align: center; word-wrap: break-word; }
+    .aprovado { color: green; }
+    .reprovado { color: red; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 8px; }
+    .grid label { margin-top: 0; font-size: 0.9em; }
+    .grid input { width: 100%; font-size: 1em; }
+    .barra-container { width: 100%; background: #ddd; border-radius: 12px; margin-top: 10px; height: 30px; }
+    .barra { height: 100%; border-radius: 12px; background: #007bff; width: 0; transition: width 0.8s; text-align: center; color: white; font-weight: bold; line-height: 30px; font-size: 1em; }
+    .resumo { font-size: 14px; margin-top: 10px; color: #333; text-align: center; word-wrap: break-word; }
+
+    @media (max-width: 400px) {
+      .grid { grid-template-columns: 1fr; gap: 10px; }
+      h1 { font-size: 1.5em; }
+      input, select { padding: 12px; font-size: 1em; }
+      button { font-size: 1em; padding: 10px; }
+      .barra-container { height: 25px; }
+      .barra { line-height: 25px; font-size: 0.9em; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Calculadora de Notas</h1>
+  <div class="container">
+    <form id="formNotas" onsubmit="return false;">
+
+      <p style="font-size:13px; color:#555;">Substitutiva deve ser calculado manualmente</p>
+
+      <label for="modoSintese">Modo de entrada das Sínteses:</label>
+      <select id="modoSintese" onchange="atualizarModoSintese(); atualizarInfoSinteses();">
+        <option value="porNota">Por nota</option>
+        <option value="porSoma">Por soma total</option>
+      </select>
+
+            <div id="porSomaContainer" style="display:none; margin-top:10px;">
+        <label for="qtdSintesesTotal">Quantas sínteses já teve?</label>
+        <select id="qtdSintesesTotal" onchange="atualizarInfoSinteses();">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+        <label for="somaSinteses">Soma das notas obtidas:</label>
+        <input type="text" id="somaSinteses">
+        <div class="hint" id="infoSintesesSoma">Distribuído: 0 / 60</div>
+      </div>
+
+            <div id="porNotaContainer" style="margin-top:10px;">
+        <label for="qtdSinteses">Quantas sínteses já teve?</label>
+        <select id="qtdSinteses" onchange="gerarCamposSinteses(); atualizarInfoSinteses();">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+        <div class="hint" id="infoSinteses">Pontos de sínteses distribuídos: 0 / 60</div>
+        <div id="sintesesInputs" class="grid"></div>
+      </div>
+
+      <h3 style="margin-top:16px;">Processuais</h3>
+      <label for="procDistribuidos">Pontos já distribuídos (até 40):</label>
+      <input type="text" id="procDistribuidos">
+      <label for="procConseguidos">Pontos que você conseguiu:</label>
+      <input type="text" id="procConseguidos">
+
+      <button type="button" onclick="calcularNota()">Calcular Nota Final</button>
+    </form>
+
+    <div class="resumo" id="resumo"></div>
+    <div class="barra-container">
+      <div class="barra" id="barraNota">0%</div>
+    </div>
+    <div class="resultado" id="resultado"></div>
+  </div>
+
+  <script>
+    function obterValorFloat(id){
+      const val = document.getElementById(id)?.value || "0";
+      return parseFloat(val.replace(',', '.')) || 0;
+    }
+
+    function atualizarModoSintese() {
+      const modo = document.getElementById('modoSintese').value;
+      if (modo === "porSoma") {
+        document.getElementById('porSomaContainer').style.display = "block";
+        document.getElementById('porNotaContainer').style.display = "none";
+      } else {
+        document.getElementById('porSomaContainer').style.display = "none";
+        document.getElementById('porNotaContainer').style.display = "block";
+      }
+    }
+
+    function gerarCamposSinteses() {
+      const qtd = parseInt(document.getElementById('qtdSinteses').value) || 0;
+      const container = document.getElementById('sintesesInputs');
+      container.innerHTML = "";
+      for (let i = 1; i <= qtd; i++) {
+        const lbl = document.createElement('label');
+        lbl.setAttribute('for', 's' + i);
+        lbl.textContent = `Síntese ${i} (0 a 10):`;
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.id = 's' + i;
+        container.appendChild(lbl);
+        container.appendChild(inp);
+      }
+    }
+
+    function atualizarInfoSinteses() {
+      const modo = document.getElementById('modoSintese').value;
+      if (modo === "porSoma") {
+        const qtd = parseInt(document.getElementById('qtdSintesesTotal').value) || 0;
+        document.getElementById('infoSintesesSoma').textContent = `Distribuído: ${qtd*10} / 60`;
+      } else {
+        const qtd = parseInt(document.getElementById('qtdSinteses').value) || 0;
+        document.getElementById('infoSinteses').textContent = `Pontos de sínteses distribuídos: ${qtd*10} / 60`;
+      }
+    }
+
+    function calcularNota() {
+      let notaSinteses = 0;
+      const modo = document.getElementById('modoSintese').value;
+
+      if (modo === "porSoma") {
+        const soma = obterValorFloat('somaSinteses');
+        const qtd = parseInt(document.getElementById('qtdSintesesTotal').value) || 0;
+        const totalDistribuido = qtd*10;
+        notaSinteses = totalDistribuido > 0 ? (Math.min(soma,totalDistribuido)/totalDistribuido)*100 : 0;
+      } else {
+        const qtdSinteses = parseInt(document.getElementById('qtdSinteses').value) || 0;
+        let soma = 0;
+        for (let i=1;i<=qtdSinteses;i++){
+          soma += obterValorFloat('s'+i);
+        }
+        const totalDistribuido = qtdSinteses*10;
+        notaSinteses = totalDistribuido > 0 ? (soma/totalDistribuido)*100 : 0;
+      }
+
+      const procDistribuidos = obterValorFloat('procDistribuidos');
+      const procConseguidos = Math.min(obterValorFloat('procConseguidos'), procDistribuidos);
+      const notaProc = procDistribuidos>0 ? (procConseguidos/procDistribuidos)*100 : 0;
+
+      const notaFinal = (notaSinteses*0.6)+(notaProc*0.4);
+
+      document.getElementById('resumo').innerHTML = `Sínteses: ${notaSinteses.toFixed(1)}% | Processuais: ${notaProc.toFixed(1)}% | Final: ${notaFinal.toFixed(1)}%`;
+
+      const barra = document.getElementById('barraNota');
+      barra.style.width = `${notaFinal}%`;
+      barra.textContent = `${notaFinal.toFixed(1)}%`;
+      barra.style.background = notaFinal>=60 ? 'green':'red';
+
+      const resultado = document.getElementById('resultado');
+      resultado.innerHTML = notaFinal>=60 ? `<span class="aprovado">✅ Aprovado</span>` : `<span class="reprovado">❌ Reprovado</span>`;
+    }
+
+    // Inicial
+    gerarCamposSinteses();
+    atualizarInfoSinteses();
+  </script>
+</body>
+</html>
