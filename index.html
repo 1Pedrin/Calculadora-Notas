@@ -38,8 +38,6 @@
   <div class="container">
     <form id="formNotas" onsubmit="return false;">
 
-      <p style="font-size:13px; color:#555;">Substitutiva deve ser calculado manualmente</p>
-
       <label for="modoSintese">Modo de entrada das Sínteses:</label>
       <select id="modoSintese" onchange="atualizarModoSintese(); atualizarInfoSinteses();">
         <option value="porNota">Por nota</option>
@@ -119,7 +117,7 @@
       for (let i = 1; i <= qtd; i++) {
         const lbl = document.createElement('label');
         lbl.setAttribute('for', 's' + i);
-        lbl.textContent = `Síntese ${i} (0 a 10):`;
+        lbl.textContent = (i === 4 ? `Síntese ${i} (Substitutiva, 0 a 10):` : `Síntese ${i} (0 a 10):`);
         const inp = document.createElement('input');
         inp.type = 'text';
         inp.id = 's' + i;
@@ -150,11 +148,26 @@
         notaSinteses = totalDistribuido > 0 ? (Math.min(soma,totalDistribuido)/totalDistribuido)*100 : 0;
       } else {
         const qtdSinteses = parseInt(document.getElementById('qtdSinteses').value) || 0;
-        let soma = 0;
+        let notas = [];
         for (let i=1;i<=qtdSinteses;i++){
-          soma += obterValorFloat('s'+i);
+          notas.push(obterValorFloat('s'+i));
         }
-        const totalDistribuido = qtdSinteses*10;
+
+        // Se houver 4 ou mais, aplicar regra da substitutiva
+        if (qtdSinteses >= 4) {
+          let substitutiva = notas[3]; // 4ª síntese
+          let anteriores = notas.slice(0,3);
+
+          // substituir a menor
+          let menorIndex = anteriores.indexOf(Math.min(...anteriores));
+          anteriores[menorIndex] = substitutiva;
+
+          // nova lista final = substituída + substitutiva extra
+          notas = anteriores.concat([substitutiva, ...notas.slice(4)]);
+        }
+
+        const soma = notas.reduce((a,b)=>a+b,0);
+        const totalDistribuido = notas.length*10;
         notaSinteses = totalDistribuido > 0 ? (soma/totalDistribuido)*100 : 0;
       }
 
